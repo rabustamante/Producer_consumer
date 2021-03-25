@@ -4,7 +4,7 @@
 
 import sys, threading, time
 
-global count, putIndex,  getIndex, cbuffer, bufLock,cond 
+global count, putIndex,  getIndex, cbuffer, bufLock,cond,cond2 
 
 def pumpProducer():
     print('starting Producer')
@@ -15,7 +15,7 @@ def pumpProducer():
       
 
 def putChar(character):
-    global count, putIndex, bufLock, cond
+    global count, putIndex, bufLock, cond,cond2
     bufLock.acquire()
     while count >= bufsize:
         #print("waiting to send", end="")
@@ -25,7 +25,7 @@ def putChar(character):
     putIndex += 1
     if putIndex == bufsize:
         putIndex = 0
-    cond.notify()
+    cond2.notify()
     bufLock.release()
 
 
@@ -42,7 +42,7 @@ def getChar():
     bufLock.acquire()
     while (count == 0):
         #print("waiting to receive", end="")
-        cond.wait()
+        cond2.wait()
         
     count -= 1
     character = cbuffer[getIndex]
@@ -66,6 +66,7 @@ cbuffer = ['x'] * bufsize    # circular buffer; x means uninitialized
 count = putIndex = getIndex = 0
 bufLock = threading.Lock()
 cond = threading.Condition(bufLock)
+cond2 = threading.Condition(bufLock)
 consumer = threading.Thread(target=pumpConsumer)
 consumer.start()
 
