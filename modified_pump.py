@@ -4,22 +4,22 @@
 
 import sys, threading, time
 
-global count, putIndex,  getIndex, cbuffer, bufLock
-
+global count, putIndex,  getIndex, cbuffer, bufLock,cond 
 
 def pumpProducer():
     print('starting Producer')
     arpaciQuote = '"Yeats famously said “Education is not the filling of a pail but the lighting of a fire.” He was right but wrong at the same time. You do have to “fill the pail” a bit, and these notes are certainly here to help with that part of your education; after all, when you go to interview at Google, and they ask you a trick question about how to use semaphores, it might be good to actually know what a semaphore is, right? But Yeats’s larger point is obviously on the mark: the real point of education is to get you interested in something, to learn something more about the subject matter on your own and not just what you have to digest to get a good grade in some class. As one of our fathers (Remzi’s dad, Vedat Arpaci) used to say, “Learn beyond the classroom”.'
     for charToSend in arpaciQuote:
         putChar(charToSend)
+
       
 
 def putChar(character):
-    global count, putIndex, bufLock
+    global count, putIndex, bufLock, cond
     bufLock.acquire()
-    while count >= bufsize:
+    while count == bufsize:
         #print("waiting to send", end="")
-        cond.wait(bufLock)
+        cond.wait()
     count += 1
     cbuffer[putIndex] = character
     putIndex += 1
@@ -37,22 +37,24 @@ def pumpConsumer():
         print("")  # newline
 
 def getChar():
-    global count, getIndex, bufLock
+    global count, getIndex, bufLock,cond
+    
     bufLock.acquire()
     while (count == 0):
         #print("waiting to receive", end="")
-        cond.wait(bufLock)
+        cond.wait()
     count -= 1
-    c = cbuffer[getIndex]
+    character = cbuffer[getIndex]
     getIndex += 1
     if (getIndex == bufsize):
         getIndex = 0
     cond.notify()
     bufLock.release()
-    return c       
+    return character     
 
 
 ### main ###
+
 if len(sys.argv) != 2:
     print(len(sys.argv))
     print("usage: pump bufferSize")
@@ -62,7 +64,7 @@ bufsize = int(sys.argv[1])
 cbuffer = ['x'] * bufsize    # circular buffer; x means uninitialized
 count = putIndex = getIndex = 0
 bufLock = threading.Lock()
-cond = threading.Condition()
+cond = threading.Condition(bufLock)
 consumer = threading.Thread(target=pumpConsumer)
 consumer.start()
 
@@ -70,3 +72,4 @@ producer = threading.Thread(target=pumpProducer)
 producer.start()
 
 producer.join()
+

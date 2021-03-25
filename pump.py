@@ -53,6 +53,7 @@ def getChar():
 
 
 ### main ###
+
 if len(sys.argv) != 2:
     print(len(sys.argv))
     print("usage: pump bufferSize")
